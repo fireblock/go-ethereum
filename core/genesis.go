@@ -345,7 +345,7 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 func DefaultFireblockGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.FireblockChainConfig,
-		Timestamp:  1502379968,
+		Timestamp:  1502883869,
 		ExtraData:  hexutil.MustDecode("0x66697265626c6f636b20636861696e00000000000000000000000000000000009be1d5be7bf94cd7d818292bdc66bad5dd7b65380000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   4700000,
 		Difficulty: big.NewInt(1),
