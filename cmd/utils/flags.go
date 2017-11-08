@@ -31,6 +31,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -139,9 +141,13 @@ var (
 		Name:  "fireblock",
 		Usage: "Fireblock network: pre-configured proof-of-authority fireblock network",
 	}
-	DevModeFlag = cli.BoolFlag{
+	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
-		Usage: "Developer mode: pre-configured private network with several debugging flags",
+		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
+	}
+	DeveloperPeriodFlag = cli.IntFlag{
+		Name:  "dev.period",
+		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
 	}
 	IdentityFlag = cli.StringFlag{
 		Name:  "identity",
@@ -309,7 +315,7 @@ var (
 	}
 	PasswordFileFlag = cli.StringFlag{
 		Name:  "password",
-		Usage: "Password file to use for non-inteactive password input",
+		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
 
@@ -805,7 +811,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		cfg.NetRestrict = list
 	}
 
-	if ctx.GlobalBool(DevModeFlag.Name) {
+	if ctx.GlobalBool(DeveloperFlag.Name) {
 		// --dev mode can't use p2p networking.
 		cfg.MaxPeers = 0
 		cfg.ListenAddr = ":0"
@@ -826,8 +832,8 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	switch {
 	case ctx.GlobalIsSet(DataDirFlag.Name):
 		cfg.DataDir = ctx.GlobalString(DataDirFlag.Name)
-	case ctx.GlobalBool(DevModeFlag.Name):
-		cfg.DataDir = filepath.Join(os.TempDir(), "ethereum_dev_mode")
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
 	case ctx.GlobalBool(RinkebyFlag.Name):
@@ -935,7 +941,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DevModeFlag, TestnetFlag, RinkebyFlag, FireblockFlag)
+	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag, FireblockFlag)
 	checkExclusive(ctx, FastSyncFlag, LightModeFlag, SyncModeFlag)
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1001,14 +1007,30 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 2323
 		}
 		cfg.Genesis = core.DefaultFireblockGenesisBlock()
-	case ctx.GlobalBool(DevModeFlag.Name):
-		cfg.Genesis = core.DevGenesisBlock()
-		if !ctx.GlobalIsSet(GasPriceFlag.Name) {
-			cfg.GasPrice = new(big.Int)
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		// Create new developer account or reuse existing one
+		var (
+			developer accounts.Account
+			err       error
+		)
+		if accs := ks.Accounts(); len(accs) > 0 {
+			developer = ks.Accounts()[0]
+		} else {
+			developer, err = ks.NewAccount("")
+			if err != nil {
+				Fatalf("Failed to create developer account: %v", err)
+			}
 		}
-		cfg.PowTest = true
-	}
+		if err := ks.Unlock(developer, ""); err != nil {
+			Fatalf("Failed to unlock developer account: %v", err)
+		}
+		log.Info("Using developer account", "address", developer.Address)
 
+		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+		if !ctx.GlobalIsSet(GasPriceFlag.Name) {
+			cfg.GasPrice = big.NewInt(1)
+		}
+	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
@@ -1095,8 +1117,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(FireblockFlag.Name):
 		genesis = core.DefaultFireblockGenesisBlock()
-	case ctx.GlobalBool(DevModeFlag.Name):
-		genesis = core.DevGenesisBlock()
+	case ctx.GlobalBool(DeveloperFlag.Name):
+		Fatalf("Developer chains are ephemeral")
 	}
 	return genesis
 }
@@ -1106,16 +1128,21 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 
-	engine := ethash.NewFaker()
-	if !ctx.GlobalBool(FakePoWFlag.Name) {
-		engine = ethash.New(
-			stack.ResolvePath(eth.DefaultConfig.EthashCacheDir), eth.DefaultConfig.EthashCachesInMem, eth.DefaultConfig.EthashCachesOnDisk,
-			stack.ResolvePath(eth.DefaultConfig.EthashDatasetDir), eth.DefaultConfig.EthashDatasetsInMem, eth.DefaultConfig.EthashDatasetsOnDisk,
-		)
-	}
 	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
 	if err != nil {
 		Fatalf("%v", err)
+	}
+	var engine consensus.Engine
+	if config.Clique != nil {
+		engine = clique.New(config.Clique, chainDb)
+	} else {
+		engine = ethash.NewFaker()
+		if !ctx.GlobalBool(FakePoWFlag.Name) {
+			engine = ethash.New(
+				stack.ResolvePath(eth.DefaultConfig.EthashCacheDir), eth.DefaultConfig.EthashCachesInMem, eth.DefaultConfig.EthashCachesOnDisk,
+				stack.ResolvePath(eth.DefaultConfig.EthashDatasetDir), eth.DefaultConfig.EthashDatasetsInMem, eth.DefaultConfig.EthashDatasetsOnDisk,
+			)
+		}
 	}
 	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
 	chain, err = core.NewBlockChain(chainDb, config, engine, vmcfg)
