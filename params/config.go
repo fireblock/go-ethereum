@@ -80,15 +80,15 @@ var (
 
 	// FireblockChainConfig contains the chain parameters to run a node on the Fireblock test network.
 	FireblockChainConfig = &ChainConfig{
-		ChainId:         big.NewInt(2323),
-		HomesteadBlock:  big.NewInt(1),
-		DAOForkBlock:    nil,
-		DAOForkSupport:  true,
-		EIP150Block:     big.NewInt(2),
-		EIP150Hash:      common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
-		EIP155Block:     big.NewInt(3),
-		EIP158Block:     big.NewInt(3),
-		MetropolisBlock: big.NewInt(math.MaxInt64), // Don't enable yet
+		ChainId:        big.NewInt(2323),
+		HomesteadBlock: big.NewInt(1),
+		DAOForkBlock:   nil,
+		DAOForkSupport: true,
+		EIP150Block:    big.NewInt(2),
+		EIP150Hash:     common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
+		EIP155Block:    big.NewInt(3),
+		EIP158Block:    big.NewInt(3),
+		ByzantiumBlock: big.NewInt(math.MaxInt64), // Don't enable yet
 
 		Clique: &CliqueConfig{
 			Period: 15,
