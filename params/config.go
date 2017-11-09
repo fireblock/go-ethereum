@@ -18,7 +18,6 @@ package params
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -85,10 +84,10 @@ var (
 		DAOForkBlock:   nil,
 		DAOForkSupport: true,
 		EIP150Block:    big.NewInt(2),
-		EIP150Hash:     common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
+		EIP150Hash:     common.HexToHash("0xccd638cbc3109802520bc1b98846bec477ad9278dfd48aa92138ada5d34016eb"),
 		EIP155Block:    big.NewInt(3),
 		EIP158Block:    big.NewInt(3),
-		ByzantiumBlock: big.NewInt(math.MaxInt64), // Don't enable yet
+		ByzantiumBlock: big.NewInt(4), // Don't enable yet
 
 		Clique: &CliqueConfig{
 			Period: 15,

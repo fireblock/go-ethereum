@@ -574,7 +574,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// HACK ellis
 	if tx.To() == nil {
-		owner := common.HexToAddress("0xa2b84b0cf54421de5f16b88d93f3785f9bf2dee2")
+		owner := common.HexToAddress("0x051895e5b93a7a9e1730192fe273898f8d029d19")
 		if from != owner {
 			log.Info("Discarding creation contract:", "from ", from)
 			log.Info("----------------------------:", "allow", owner)
@@ -642,7 +642,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	// HACK ellis
 	/* from2, _ := types.Sender(pool.signer, tx) // already validated
 	if tx.To() == nil {
-		if from2 != common.HexToAddress("0xa2b84b0cf54421de5f16b88d93f3785f9bf2dee2") {
+		if from2 != common.HexToAddress("0x051895e5b93a7a9e1730192fe273898f8d029d19") {
 			log.Info("Discarding creation contract from ", "from", from2)
 			return false, ErrGasLimit
 		}
