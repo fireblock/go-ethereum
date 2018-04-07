@@ -79,6 +79,24 @@ var (
 		},
 	}
 
+	// FireblockChainConfig contains the chain parameters to run a node on the Fireblock test network.
+	FireblockChainConfig = &ChainConfig{
+		ChainID:        big.NewInt(2323),
+		HomesteadBlock: big.NewInt(1),
+		DAOForkBlock:   nil,
+		DAOForkSupport: true,
+		EIP150Block:    big.NewInt(2),
+		EIP150Hash:     common.HexToHash("0xccd638cbc3109802520bc1b98846bec477ad9278dfd48aa92138ada5d34016eb"),
+		EIP155Block:    big.NewInt(3),
+		EIP158Block:    big.NewInt(3),
+		ByzantiumBlock: big.NewInt(4), // Don't enable yet
+
+		Clique: &CliqueConfig{
+			Period: 15,
+			Epoch:  30000,
+		},
+	}
+
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Ethash consensus.
 	//

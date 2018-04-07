@@ -333,6 +333,18 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultFireblockGenesisBlock returns the Fireblock network genesis block.
+func DefaultFireblockGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.FireblockChainConfig,
+		Timestamp:  1510217184,
+		ExtraData:  hexutil.MustDecode("0x66697265626c6f636b00000000000000000000000000000000000000000000009be1d5be7bf94cd7d818292bdc66bad5dd7b65380000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   18800000,
+		Difficulty: big.NewInt(1),
+		Alloc:      decodePrealloc(fireblockAllocData),
+	}
+}
+
 // DeveloperGenesisBlock returns the 'geth --dev' genesis block. Note, this must
 // be seeded with the
 func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
