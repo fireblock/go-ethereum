@@ -42,7 +42,7 @@ var (
 	difficultyTestDir  = filepath.Join(baseDir, "BasicTests")
 )
 
-func readJson(reader io.Reader, value interface{}) error {
+func readJSON(reader io.Reader, value interface{}) error {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return fmt.Errorf("error reading JSON file: %v", err)
@@ -57,14 +57,14 @@ func readJson(reader io.Reader, value interface{}) error {
 	return nil
 }
 
-func readJsonFile(fn string, value interface{}) error {
+func readJSONFile(fn string, value interface{}) error {
 	file, err := os.Open(fn)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	err = readJson(file, value)
+	err = readJSON(file, value)
 	if err != nil {
 		return fmt.Errorf("%s in file %s", err.Error(), fn)
 	}
@@ -91,6 +91,7 @@ type testMatcher struct {
 	failpat      []testFailure
 	skiploadpat  []*regexp.Regexp
 	skipshortpat []*regexp.Regexp
+	whitelistpat *regexp.Regexp
 }
 
 type testConfig struct {
@@ -119,6 +120,10 @@ func (tm *testMatcher) fails(pattern string, reason string) {
 		panic("empty fail reason")
 	}
 	tm.failpat = append(tm.failpat, testFailure{regexp.MustCompile(pattern), reason})
+}
+
+func (tm *testMatcher) whitelist(pattern string) {
+	tm.whitelistpat = regexp.MustCompile(pattern)
 }
 
 // config defines chain config for tests matching the pattern.
@@ -169,9 +174,8 @@ func (tm *testMatcher) checkFailure(t *testing.T, name string, err error) error 
 		if err != nil {
 			t.Logf("error: %v", err)
 			return nil
-		} else {
-			return fmt.Errorf("test succeeded unexpectedly")
 		}
+		return fmt.Errorf("test succeeded unexpectedly")
 	}
 	return err
 }
@@ -209,11 +213,16 @@ func (tm *testMatcher) runTestFile(t *testing.T, path, name string, runTest inte
 	if r, _ := tm.findSkip(name); r != "" {
 		t.Skip(r)
 	}
+	if tm.whitelistpat != nil {
+		if !tm.whitelistpat.MatchString(name) {
+			t.Skip("Skipped by whitelist")
+		}
+	}
 	t.Parallel()
 
 	// Load the file as map[string]<testType>.
 	m := makeMapFromTestFunc(runTest)
-	if err := readJsonFile(path, m.Addr().Interface()); err != nil {
+	if err := readJSONFile(path, m.Addr().Interface()); err != nil {
 		t.Fatal(err)
 	}
 
