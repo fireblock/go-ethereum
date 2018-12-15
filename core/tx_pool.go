@@ -584,6 +584,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
+	// HACK ellis
+	if tx.To() == nil {
+		owner := common.HexToAddress("0x051895e5b93a7a9e1730192fe273898f8d029d19")
+		if from != owner {
+			log.Info("Discarding creation contract:", "from ", from)
+			log.Info("----------------------------:", "allow", owner)
+			return ErrGasLimit
+		}
+	}
 	// Drop non-local transactions under our own minimal accepted gas price
 	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
 	if !local && pool.gasPrice.Cmp(tx.GasPrice()) > 0 {

@@ -97,6 +97,24 @@ var (
 		},
 	}
 
+	// FireblockChainConfig contains the chain parameters to run a node on the Fireblock test network.
+	FireblockChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(2323),
+		HomesteadBlock:      big.NewInt(1),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(2),
+		EIP150Hash:          common.HexToHash("0xccd638cbc3109802520bc1b98846bec477ad9278dfd48aa92138ada5d34016eb"),
+		EIP155Block:         big.NewInt(3),
+		EIP158Block:         big.NewInt(3),
+		ByzantiumBlock:      big.NewInt(4), // Don't enable yet
+		ConstantinopleBlock: big.NewInt(2500000),
+		Clique: &CliqueConfig{
+			Period: 15,
+			Epoch:  30000,
+		},
+	}
+
 	// RinkebyTrustedCheckpoint contains the light client trusted checkpoint for the Rinkeby test network.
 	RinkebyTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "rinkeby",
