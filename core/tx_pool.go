@@ -654,6 +654,14 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 			pool.removeTx(tx.Hash(), false)
 		}
 	}
+	// HACK ellis
+	/* from2, _ := types.Sender(pool.signer, tx) // already validated
+	if tx.To() == nil {
+		if from2 != common.HexToAddress("0x051895e5b93a7a9e1730192fe273898f8d029d19") {
+			log.Info("Discarding creation contract from ", "from", from2)
+			return false, ErrGasLimit
+		}
+	}*/
 	// If the transaction is replacing an already pending one, do directly
 	from, _ := types.Sender(pool.signer, tx) // already validated
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
